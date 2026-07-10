@@ -1,0 +1,10 @@
+{application, errm_json, [
+  {description, "Errm.. JSON, a JSON parser, and writer for erlang."},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications, [kernel, stdlib]},
+  {mod, {errm_sup, []}},
+  {env, []},
+  {licenses, ["BSD-3"]},
+  {links, [{"Codeberg", "https://codeberg.org/h4rl/errm-JSON"}]}
+]}.

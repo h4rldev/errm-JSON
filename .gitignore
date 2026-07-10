@@ -1,0 +1,6 @@
+.direnv
+_build
+result
+example_write*.json
+*.beam
+*.txt
