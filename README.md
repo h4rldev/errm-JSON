@@ -1,6 +1,6 @@
 # Errm... JSON!
 
-A JSON parser, and writer for erlang.
+A small library providing a stateless JSON parser, and writer.
 
 ## Dependencies
 
