@@ -32,10 +32,14 @@ encode_value(Float) when is_float(Float) -> float_to_binary(Float);
 encode_value(Bin)   when is_binary(Bin)  -> [<<"\"">>, escape_binary(Bin), <<"\"">>];
 encode_value(Atom)  when is_atom(Atom)   -> encode_value(atom_to_binary(Atom, utf8));
 encode_value(List) when is_list(List) ->
-    case io_lib:printable_list(List) of
-      true -> encode_value(unicode:characters_to_binary(List));
-      false -> encode_array(List)
-    end;
+  case List of
+    [] -> encode_array([]);   % empty list → array
+    _ ->
+      case io_lib:printable_list(List) of
+        true  -> encode_value(unicode:characters_to_binary(List));
+        false -> encode_array(List)
+      end
+  end;
 encode_value(Map)   when is_map(Map)     -> encode_object(Map);
 encode_value(Term) -> error({unsupported_term, Term}).
 
@@ -125,7 +129,14 @@ encode_pretty(Bin, _Depth, _Indent) when is_binary(Bin) ->
 encode_pretty(Atom, _Depth, _Indent) when is_atom(Atom) ->
   encode_value(Atom);
 encode_pretty(List, Depth, Indent) when is_list(List) ->
-  encode_array_pretty(List, Depth, Indent);
+  case List of
+    [] -> encode_array_pretty([], Depth, Indent);
+    _ ->
+      case io_lib:printable_list(List) of
+        true  -> encode_value(unicode:characters_to_binary(List));
+        false -> encode_array_pretty(List, Depth, Indent)
+      end
+  end;
 encode_pretty(Map, Depth, Indent) when is_map(Map) ->
   encode_object_pretty(Map, Depth, Indent).
 

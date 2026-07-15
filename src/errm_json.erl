@@ -1,9 +1,8 @@
 -module(errm_json).
 -export([decode/1, decode/2, decode_stream/1, decode_stream/2, decode_lines/1, decode_lines/2, encode/1, encode/2, to_binary/1, to_binary/2, is_json/1]).
+
 % elp:ignore W0020
 -include("include/errm_json.hrl").
-
-
 -export_type([json_term/0, parse_options/0, encode_options/0]).
 
 -spec decode(Body :: binary()) -> {ok, Term :: json_term()} | {error, Reason :: term()}.
