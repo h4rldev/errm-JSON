@@ -36,7 +36,6 @@ to_binary(Term, Opts) ->
   iolist_to_binary(encode(Term, Opts)).
 
 encode_value(Term) -> encode_value(Term, undefined).
-
 encode_value(null, _Order) -> <<"null">>;
 encode_value(true, _Order) -> <<"true">>;
 encode_value(false, _Order) -> <<"false">>;
@@ -44,13 +43,13 @@ encode_value(Int, _Order)   when is_integer(Int) -> integer_to_binary(Int);
 encode_value(Float, _Order) when is_float(Float) -> float_to_binary(Float);
 encode_value(Bin, _Order)   when is_binary(Bin)  -> [<<"\"">>, escape_binary(Bin), <<"\"">>];
 encode_value(Atom, _Order)  when is_atom(Atom)   -> encode_value(atom_to_binary(Atom, utf8));
-encode_value(List, _Order) when is_list(List) ->
+encode_value(List, Order) when is_list(List) ->
   case List of
-    [] -> encode_array([]);   % empty list → array
+    [] -> encode_array([], []);
     _ ->
       case io_lib:printable_list(List) of
-        true  -> encode_value(unicode:characters_to_binary(List));
-        false -> encode_array(List)
+        true  -> encode_value(unicode:characters_to_binary(List), Order);
+        false -> encode_array(List, Order)
       end
   end;
 encode_value(Map, Order)   when is_map(Map)     -> encode_object(Map, Order);
@@ -107,26 +106,23 @@ reverse_iolist_list(List) ->
 
 reverse_iolist_list([], Acc) -> Acc;
 reverse_iolist_list([H | T], Acc) -> reverse_iolist_list(T, [H | Acc]).
--spec encode_array(list()) -> iolist().
-encode_array(List) ->
-  Elements = map_encode_value(List),
+
+-spec encode_array(list(), undefined | [atom() | binary()]) -> iolist().
+encode_array(List, Order) ->
+  Elements = map_encode_value(List, Order),
   [<<"[">>, join(Elements, ","), <<"]">>].
 
 
-%% Custom map that preserves [iolist()] type
--spec map_encode_value([json_term()]) -> [iolist()].
-map_encode_value([]) ->
+-spec map_encode_value([json_term()], undefined | [atom() | binary()]) -> [iolist()].
+map_encode_value([], _Order) ->
     [];
-map_encode_value([H | T]) ->
-    [encode_value(H) | map_encode_value(T)].
+map_encode_value([H | T], Order) ->
+    [encode_value(H, Order) | map_encode_value(T, Order)].
 
 -spec join([iolist()], iolist()) -> iolist().
 join([], _Sep) -> [];
 join([H], _Sep) -> H;
 join([H | T], Sep) -> [H, Sep | join(T, Sep)].
-
-encode_pretty(Term, Depth, Indent) ->
-    encode_pretty(Term, Depth, Indent, undefined).
 
 encode_pretty(null, _Depth, _Indent, _Order) ->
   encode_value(null);
@@ -142,13 +138,13 @@ encode_pretty(Bin, _Depth, _Indent, _Order) when is_binary(Bin) ->
   encode_value(Bin);
 encode_pretty(Atom, _Depth, _Indent, _Order) when is_atom(Atom) ->
   encode_value(Atom);
-encode_pretty(List, Depth, Indent, _Order) when is_list(List) ->
+encode_pretty(List, Depth, Indent, Order) when is_list(List) ->
   case List of
-    [] -> encode_array_pretty([], Depth, Indent);
+    [] -> encode_array_pretty([], Depth, Indent, Order);
     _ ->
       case io_lib:printable_list(List) of
-        true  -> encode_value(unicode:characters_to_binary(List));
-        false -> encode_array_pretty(List, Depth, Indent)
+        true  -> encode_value(unicode:characters_to_binary(List), Order);
+        false -> encode_array_pretty(List, Depth, Indent, Order)
       end
   end;
 encode_pretty(Map, Depth, Indent, Order) when is_map(Map) ->
@@ -178,11 +174,11 @@ build_pretty_pairs([Key | Keys], Map, Indent, Step, Order, Acc) ->
     build_pretty_pairs(Keys, Map, Indent, Step, Order, [Pair | Acc]).
 
 
--spec encode_array_pretty(list(), non_neg_integer(), non_neg_integer()) -> iolist().
-encode_array_pretty([], _Indent, _Step) -> [<<"[">>, <<"]">>];
-encode_array_pretty(List, Indent, Step) ->
+-spec encode_array_pretty(list(), non_neg_integer(), non_neg_integer(), undefined | [atom() | binary()]) -> iolist().
+encode_array_pretty([], _Indent, _Step, _Order) -> [<<"[">>, <<"]">>];
+encode_array_pretty(List, Indent, Step, Order) ->
   NewIndent = Indent + Step,
-  Elements = map_pretty_elements(List, NewIndent, Step),
+  Elements = map_pretty_elements(List, NewIndent, Step, Order),
   [<<"[\n">>, join(Elements, ",\n"), <<"\n">>, indent(Indent), <<"]">>].
 
 -spec indent(non_neg_integer()) -> iolist().
@@ -194,11 +190,11 @@ encode_key(Key) when is_binary(Key) -> Key;
 encode_key(Key) when is_atom(Key) -> atom_to_binary(Key, utf8);
 encode_key(Key) -> iolist_to_binary(io_lib:format("~p", [Key])).
 
--spec map_pretty_elements([json_term()], non_neg_integer(), non_neg_integer()) -> [iolist()].
-map_pretty_elements([], _Indent, _Step) ->
+-spec map_pretty_elements([json_term()], non_neg_integer(), non_neg_integer(), undefined | [binary() | atom()]) -> [iolist()].
+map_pretty_elements([], _Indent, _Step, _Order) ->
     [];
-map_pretty_elements([H | T], Indent, Step) ->
-    [ [indent(Indent), encode_pretty(H, Indent, Step)] | map_pretty_elements(T, Indent, Step)].
+map_pretty_elements([H | T], Indent, Step, Order) ->
+    [ [indent(Indent), encode_pretty(H, Indent, Step, Order)] | map_pretty_elements(T, Indent, Step, Order)].
 
 -spec get_ordered_keys(map(), undefined | [atom() | binary()]) -> [any()].
 get_ordered_keys(Map, undefined) ->
