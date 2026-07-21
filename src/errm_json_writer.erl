@@ -85,7 +85,9 @@ hex_char(N) -> $A + (N - 10).
 
 -spec encode_object(map(), undefined | [atom() | binary()]) -> iolist().
 encode_object(Map, Order) ->
+    io:format("encode_object Order: ~p~n", [Order]),
     Keys = get_ordered_keys(Map, Order),
+    io:format("Keys: ~p~n", [Keys]),
     Pairs = build_pairs(Keys, Map, []),
     [<<"{">>, join(reverse_iolist_list(Pairs), ","), <<"}">>].
 
